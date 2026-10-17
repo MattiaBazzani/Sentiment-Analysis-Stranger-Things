@@ -1,0 +1,24 @@
+# --- R / RStudio ---
+.Rhistory
+.RData
+.Rapp.history
+.Rproj.user/
+*.Rproj
+.Ruserdata
+
+# --- File temporanei generati da Knit (il PDF finale resta nella repo) ---
+*.knit.md
+*.log
+*.aux
+*.tex
+*_cache/
+*_files/
+
+# --- Python / Jupyter ---
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
