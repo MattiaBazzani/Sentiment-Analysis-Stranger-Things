@@ -6,7 +6,7 @@ library(ggplot2) # per visualizzazioni grafiche
 library(reshape2) # per manipolazione dati
 library(tm) # per text mining
 library(tidytext) # per text mining
-library(udpipe) # per POS tagging(forse non utilizzata)
+library(udpipe) # per POS tagging e RAKE
 library(textclean) # per pulizia testi
 library(topicmodels) # per topic modeling
 library(ldatuning) # per topic modeling
@@ -27,7 +27,7 @@ head(dta)
 dta$rating <- as.numeric(dta$rating)
 summary(dta$rating)
 
-#vediamo che ci sono 168 NA in rating, li sostituiamo con la mediana (valutazione pari a 7)
+# 168 valori NA in rating: sostituiti con la mediana (valutazione pari a 7)
 
 dta$rating[is.na(dta$rating)] <- median(dta$rating, na.rm = TRUE)
 summary(dta$rating)
@@ -35,7 +35,7 @@ summary(dta$rating)
 #controlliamo adesso upvote e downvote
 
 table(dta$upvote)
-#vediamo che ci sono i valori 1k, 1.1K, 1.2K, 1.4K,  1.8K e 2.6K, li tasformiamo in numerici
+# Presenti valori come 1k, 1.1K, 1.2K, 1.4K, 1.8K e 2.6K: convertiti in numerici
 
 dta$upvote <- gsub("1K", "1000", dta$upvote)
 dta$upvote <- gsub("1.1K", "1100", dta$upvote)
@@ -49,7 +49,7 @@ dta$upvote <- as.numeric(dta$upvote)
 #facciamo la stessa cosa per i downvote
 
 table(dta$downvote)
-#vediamo che ci sono i valori 1.4K, 1.5K
+# Presenti valori come 1.4K, 1.5K: convertiti in numerici
 
 dta$downvote <- gsub("1.4K", "1400", dta$downvote)
 dta$downvote <- gsub("1.5K", "1500", dta$downvote)
@@ -64,7 +64,7 @@ cor(dta[, c("rating", "upvote", "downvote", "episodio")])
 # inoltre notiamo una correlazione positiva tra upvote e downvote, il che è logico in quanto le recensioni
 # più popolari tendono a ricevere sia più upvote che downvote
 
-### da fare in maniera più raffinata se c'è tempo
+### Possibile miglioria: riconoscimento dei personaggi più robusto (es. nomi composti, soprannomi)
 # per ciascun personaggio principale creiamo una variabile dicotomica che indica se il 
 # personaggio è menzionato nella recensione
 dta$eleven <- ifelse(str_detect(tolower(dta$recensione), "eleven|Jane|\b el \b"), 1, 0)
@@ -118,7 +118,7 @@ ggplot(character_stats_long, aes(x = reorder(character, -perc), y = perc)) + #re
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# Vediamo che will è il personaggio più menzionato, 
+# Will è il personaggio più menzionato, 
 # seguito da Vecna e mike
 
 ##### 1.b Analizziamo adesso le mezioni per episodio ######
@@ -139,7 +139,7 @@ ggplot(mentions_long, aes(x = episodio, y = character, fill = mentions)) +
        x = "Episodio", y = "Personaggio") +
   theme_minimal()
 
-# vediamo che will è mezionato soprattuttto negli episodi 4 e 7, dove ha grande importanza, 
+# Will è menzionato soprattutto negli episodi 4 e 7, dove ha grande importanza, 
 # max soprattutto nel sesto (esce dalla "gabbia di vecna"), nell'episodio 2 
 # Holly e i demogorgoni sono spesso citati, in quanto questi ultimi la rapiscono
 # Vecna citato spesso nell'ultimo episodio, in cui ha ovviamente grande importanza.
@@ -165,7 +165,7 @@ for (i in 1:length(character_cols)) {
 cooccurrence_melted <- melt(cooccurrence_matrix) # melt converte oggetto da formato largo a formato
 # lungo
 
-# da lavorarci su, idea carina ma fa schifo (heatmap co-occorenze)
+# Heatmap delle co-occorrenze assolute (nel report si usa la versione normalizzata con Jaccard)
 ggplot(cooccurrence_melted, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile() +
   scale_fill_gradient(low = "blue", high = "red") +
@@ -179,7 +179,7 @@ ggplot(cooccurrence_melted, aes(x = Var1, y = Var2, fill = value)) +
 # Confronta rating medio per recensioni che menzionano/non menzionano un personaggio
 rating_comparison <- data.frame()
 
-# crea dataframe con colonne personaggi, media voto, n_review e mezionato si/no
+# crea dataframe con colonne personaggi, media voto, n_review e menzionato si/no
 for (char in character_cols) {
   temp <- dta %>%
     group_by(!!sym(char)) %>%
@@ -299,6 +299,7 @@ key_dta = key_dta %>%
   )) %>%
   select(id, recensione, personaggio)
 
+# Tentativo scartato: stop word personalizzate e tf-idf per personaggio
 # new_stopwords <- c("mike", "will", "byers", "shnapp", "dustin", "lucas", "eleven", "max", "william") 
 #           
 # new_stoplist <- rbind(stoplist, data.frame(word = new_stopwords, lexicon = rep("custom", length(new_stopwords))))
@@ -314,7 +315,7 @@ key_tt_ww <- key_dta %>%
 
 
 
-# # calcola tf-idf per personaggio non esce molto interessante
+# # Analisi tf-idf per personaggio: scartata perché poco informativa
 # 
 # key_tt_ww = key_tt_ww %>%
 #   group_by(personaggio) %>%
@@ -327,7 +328,7 @@ key_tt_ww <- key_dta %>%
 #   arrange(desc(tf_idf)) 
 
 
-#vediamo i termini più frequenti nelle recnsioni per ciascun personaggio principale
+# Termini più frequenti nelle recensioni per ciascun personaggio principale
 print(key_tf_idf %>% filter(personaggio=="will"), n=60)
 print(key_tf_idf %>% filter(personaggio=="lucas"), n=60)
 print(key_tf_idf %>% filter(personaggio=="dustin"), n=60)
@@ -618,7 +619,7 @@ head(keywords_will_s, 30)
 
 ##### 4. Topic Modeling ##### 
 
-#aggiungere stop words, fa schifo
+# Nota: i topic risultanti non sono interpretabili; si potrebbero aggiungere stop word specifiche del dominio
 
 library(topicmodels)
 library(ldatuning)
@@ -674,6 +675,7 @@ char_top_terms %>%
 # 
 # key_tt_ww = key_tt_ww %>% group_by(word) %>% mutate(tot=n())
 # 
+# Tentativo scartato: topic modeling (LDA) per personaggio, topic non interpretabili
 # key_dtm = key_tt_ww %>% cast_dtm(document = id,term = word,value = tot) 
 # 
 # char_lda = LDA(key_dtm, k = 6, method="Gibbs", control = list(seed = 1123, burnin=1000, iter=1000))
@@ -760,7 +762,7 @@ dta <- dta %>%
   # Sostituisci NA con 0 per i documenti senza parole nel lessico
   mutate(sentiment = coalesce(sentiment, 0))
 
-# vediamo sentiment medio per recensionin in cui compare il personaggio
+# Sentiment medio per le recensioni in cui compare il personaggio
 sentiment_by_character <- data.frame()
 
 for (char in character_cols) {
@@ -804,7 +806,7 @@ dta <- dta %>%
   # Sostituisci NA con 0 per i documenti senza parole nel lessico
   mutate(sentiment_n = coalesce(sen, 0))
 
-# vediamo sentiment medio per recensionin in cui compare il personaggio
+# Sentiment medio per le recensioni in cui compare il personaggio
 sentiment_by_character_n <- data.frame()
 
 for (char in character_cols) {
@@ -853,7 +855,7 @@ dta <- dta %>%
   # Sostituisci NA con 0 per i documenti senza parole nel lessico
   mutate(sentiment_b = coalesce(sent, 0))
 
-# vediamo sentiment medio per recensionin in cui compare il personaggio
+# Sentiment medio per le recensioni in cui compare il personaggio
 sentiment_by_character_b <- data.frame()
 
 for (char in character_cols) {
@@ -902,8 +904,8 @@ for (char in character_cols) {
   
   cat("Wilcoxon test p-value:", test_result$p.value, "\n\n")
 }
-# per tutti i personaggi il p-value è <<0.05, quindi rifiutiamo l'ipotesi nulla, risultati ottenuti scostano molto
-# si notava già graficamente dato che con bing otteniamo sentiment negativi, con afinn sentiment positivi
+# p-value << 0.05 per tutti i personaggi: si rifiuta l'ipotesi nulla, i due lessici differiscono sistematicamente
+# (già visibile graficamente: Bing produce sentiment più negativi, AFINN più positivi)
 
 #test su dataset completo
 
